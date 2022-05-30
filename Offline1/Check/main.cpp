@@ -596,7 +596,10 @@ void display()
     glPopMatrix();
 
 
-
+    glPushMatrix();
+    glTranslatef(sq,sq,-sq);
+    drawOneFourthCylinder(L-sq,sq*2,50,50);
+    glPopMatrix();
 
 
 
