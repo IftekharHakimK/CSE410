@@ -150,10 +150,10 @@ void drawSquare(double a)
     //glColor3f(1.0,0.0,0.0);
     glBegin(GL_QUADS);
     {
-        glVertex3f( a, a,2);
-        glVertex3f( a,-a,2);
-        glVertex3f(-a,-a,2);
-        glVertex3f(-a, a,2);
+        glVertex3f( a, a,0);
+        glVertex3f( a,-a,0);
+        glVertex3f(-a,-a,0);
+        glVertex3f(-a, a,0);
     }
     glEnd();
 }
@@ -428,8 +428,11 @@ void specialKeyListener(int key, int x,int y)
         break;
 
     case GLUT_KEY_HOME:
+        sq=max(sq-1,0.0);
+        cout<<sq<<endl;
         break;
     case GLUT_KEY_END:
+        sq=min(sq+1,L);
         break;
 
     default:
@@ -462,8 +465,58 @@ void mouseListener(int button, int state, int x, int y) 	//x, y is the x-y of th
     }
 }
 
+void draw4cylinders()
+{
+    glPushMatrix();
+    glTranslatef(sq,sq,-sq);
+    drawOneFourthCylinder(L-sq,sq*2,50,50);
+    glPopMatrix();
 
+    glPushMatrix();
+    glTranslatef(-sq,sq,-sq);
+    glRotatef(90,0,0,1);
+    drawOneFourthCylinder(L-sq,sq*2,50,50);
+    glPopMatrix();
 
+    glPushMatrix();
+    glTranslatef(-sq,-sq,-sq);
+    glRotatef(180,0,0,1);
+    drawOneFourthCylinder(L-sq,sq*2,50,50);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(sq,-sq,-sq);
+    glRotatef(270,0,0,1);
+    drawOneFourthCylinder(L-sq,sq*2,50,50);
+    glPopMatrix();
+}
+
+void draw4spheres()
+{
+    glPushMatrix();
+    glTranslatef(sq,sq,sq);
+    drawOneEighthSphere(L-sq,50,50);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(-sq,sq,sq);
+    glRotatef(90,0,0,1);
+    drawOneEighthSphere(L-sq,50,50);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(sq,-sq,sq);
+    glRotatef(-90,0,0,1);
+    drawOneEighthSphere(L-sq,50,50);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(-sq,-sq,sq);
+    glRotatef(180,0,0,1);
+    drawOneEighthSphere(L-sq,50,50);
+    glPopMatrix();
+
+}
 
 void display()
 {
@@ -572,33 +625,28 @@ void display()
     drawSquare(sq);
     glPopMatrix();
 
+
     glPushMatrix();
-    glTranslatef(sq,sq,sq);
-    drawOneEighthSphere(L-sq,50,50);
+    glRotatef(90,1,0,0);
+    draw4cylinders();
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-sq,sq,sq);
-    glRotatef(90,0,0,1);
-    drawOneEighthSphere(L-sq,50,50);
+    glRotatef(90,0,1,0);
+    draw4cylinders();
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(sq,-sq,sq);
-    glRotatef(-90,0,0,1);
-    drawOneEighthSphere(L-sq,50,50);
+    draw4cylinders();
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-sq,-sq,sq);
-    glRotatef(180,0,0,1);
-    drawOneEighthSphere(L-sq,50,50);
+    draw4spheres();
     glPopMatrix();
 
-
     glPushMatrix();
-    glTranslatef(sq,sq,-sq);
-    drawOneFourthCylinder(L-sq,sq*2,50,50);
+    glRotatef(180,0,1,0);
+    draw4spheres();
     glPopMatrix();
 
 
