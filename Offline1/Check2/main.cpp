@@ -120,92 +120,20 @@ void drawGrid()
         glColor3f(0.6, 0.6, 0.6);	//grey
         glBegin(GL_LINES);
         {
-            for(i=-8; i<=8; i++)
+            for(i=-20; i<=20; i++)
             {
 
-//                if(i==0)
-//                    continue;	//SKIP the MAIN axes
+                glVertex3f(i*10, -210, 0);
+                glVertex3f(i*10,  210, 0);
 
-                //lines parallel to Y-axis
-                glVertex3f(i*10, -90, 0);
-                glVertex3f(i*10,  90, 0);
-
-                //lines parallel to X-axis
-                glVertex3f(-90, i*10, 0);
-                glVertex3f( 90, i*10, 0);
+                glVertex3f(-210, i*10, 0);
+                glVertex3f( 210, i*10, 0);
             }
         }
         glEnd();
     }
 }
 
-void drawSquare(double a)
-{
-    //glColor3f(1.0,0.0,0.0);
-    glBegin(GL_QUADS);
-    {
-        glVertex3f( a, a,0);
-        glVertex3f( a,-a,0);
-        glVertex3f(-a,-a,0);
-        glVertex3f(-a, a,0);
-    }
-    glEnd();
-}
-
-
-void drawCircle(double radius,int segments)
-{
-    int i;
-    struct Point points[100];
-    glColor3f(0.7,0.7,0.7);
-    //generate points
-    for(i=0; i<=segments; i++)
-    {
-        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
-        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
-    }
-    //draw segments using generated points
-    for(i=0; i<segments; i++)
-    {
-        glBegin(GL_LINES);
-        {
-            glVertex3f(points[i].x,points[i].y,0);
-            glVertex3f(points[i+1].x,points[i+1].y,0);
-        }
-        glEnd();
-    }
-}
-
-void drawCone(double radius,double height,int segments)
-{
-    int i;
-    double shade;
-    struct Point points[100];
-    //generate points
-    for(i=0; i<=segments; i++)
-    {
-        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
-        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
-    }
-    //draw triangles using generated points
-    for(i=0; i<segments; i++)
-    {
-        //create shading effect
-        if(i<segments/2)
-            shade=2*(double)i/(double)segments;
-        else
-            shade=2*(1.0-(double)i/(double)segments);
-        glColor3f(shade,shade,shade);
-
-        glBegin(GL_TRIANGLES);
-        {
-            glVertex3f(0,0,height);
-            glVertex3f(points[i].x,points[i].y,0);
-            glVertex3f(points[i+1].x,points[i+1].y,0);
-        }
-        glEnd();
-    }
-}
 
 double fmod(double ang)
 {
@@ -214,10 +142,38 @@ double fmod(double ang)
     return ang;
 }
 
+void drawInnerRectangle(bool f)
+{
+    Vector radial_vector=ROTATE(normal,Vector(0,0,1),90);
+
+    radial_vector=ROTATE(radial_vector,normal,ANG);
+    if(f)
+        radial_vector=ROTATE(radial_vector,normal,90);
+    Point a=center+radial_vector*R;
+    Point b=center+radial_vector*R;
+    Point c=center-radial_vector*R;
+    Point d=center-radial_vector*R;
+
+    a=a+normal*width;
+    b=b-normal*width;
+    c=c+normal*width;
+    d=d-normal*width;
+    glBegin(GL_QUADS);
+    {
+        glColor3f(0.6,0.6,0.6);
+        glVertex3f(a.x,a.y,a.z);
+        glVertex3f(b.x,b.y,b.z);
+        glVertex3f(d.x,d.y,d.z);
+        glVertex3f(c.x,c.y,c.z);
+    }
+    glEnd();
+}
+
 void drawWheel(int slices,int stacks)
 {
     struct Point points[100][100];
 
+    /*Left part*/
     for(int i=0;i<=stacks;i++)
     {
         for(int j=0;j<=slices;j++)
@@ -254,6 +210,7 @@ void drawWheel(int slices,int stacks)
         }
     }
 
+    /*Right part*/
     for(int i=0;i<=stacks;i++)
     {
         for(int j=0;j<=slices;j++)
@@ -290,111 +247,12 @@ void drawWheel(int slices,int stacks)
         }
     }
 
+    /*First rectangle*/
+    drawInnerRectangle(0);
+    /*Second rectangle*/
+    drawInnerRectangle(1);
 }
 
-void drawSphere(double radius,int slices,int stacks)
-{
-    struct Point points[100][100];
-    int i,j;
-    double h,r;
-    //generate points
-    for(i=0; i<=stacks; i++)
-    {
-        h=radius*sin(((double)i/(double)stacks)*(pi/2));
-        r=radius*cos(((double)i/(double)stacks)*(pi/2));
-        for(j=0; j<=slices; j++)
-        {
-            points[i][j].x=r*cos(((double)j/(double)slices)*2*pi);
-            points[i][j].y=r*sin(((double)j/(double)slices)*2*pi);
-            points[i][j].z=h;
-        }
-    }
-    //draw quads using generated points
-    for(i=0; i<stacks; i++)
-    {
-        glColor3f((double)i/(double)stacks,(double)i/(double)stacks,(double)i/(double)stacks);
-        for(j=0; j<slices; j++)
-        {
-            glBegin(GL_QUADS);
-            {
-                //upper hemisphere
-                glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
-                glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
-                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
-                glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
-                //lower hemisphere
-                glVertex3f(points[i][j].x,points[i][j].y,-points[i][j].z);
-                glVertex3f(points[i][j+1].x,points[i][j+1].y,-points[i][j+1].z);
-                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,-points[i+1][j+1].z);
-                glVertex3f(points[i+1][j].x,points[i+1][j].y,-points[i+1][j].z);
-            }
-            glEnd();
-        }
-    }
-}
-
-void drawOneEighthSphere(double radius,int slices,int stacks)
-{
-    struct Point points[100][100];
-    double h,r;
-    //generate points
-    for(int i=0; i<=stacks; i++)
-    {
-        h=radius*sin(((double)i/(double)stacks)*(pi/2));
-        r=radius*cos(((double)i/(double)stacks)*(pi/2));
-        for(int j=0; j<=slices; j++)
-        {
-            points[i][j].x=r*cos(((double)j/(double)slices)*pi/2);
-            points[i][j].y=r*sin(((double)j/(double)slices)*pi/2);
-            points[i][j].z=h;
-        }
-    }
-    glColor3f(1,0,0);
-    for(int i=0; i<stacks; i++)
-    {
-        for(int j=0; j<slices; j++)
-        {
-            glBegin(GL_QUADS);
-            {
-                //upper hemisphere
-                glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
-                glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
-                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
-                glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
-            }
-            glEnd();
-        }
-    }
-}
-
-
-void drawSS()
-{
-    glColor3f(1,0,0);
-    drawSquare(20);
-
-    glRotatef(angle,0,0,1);
-    glTranslatef(110,0,0);
-    glRotatef(2*angle,0,0,1);
-    glColor3f(0,1,0);
-    drawSquare(15);
-
-    glPushMatrix();
-    {
-        glRotatef(angle,0,0,1);
-        glTranslatef(60,0,0);
-        glRotatef(2*angle,0,0,1);
-        glColor3f(0,0,1);
-        drawSquare(10);
-    }
-    glPopMatrix();
-
-    glRotatef(3*angle,0,0,1);
-    glTranslatef(40,0,0);
-    glRotatef(4*angle,0,0,1);
-    glColor3f(1,1,0);
-    drawSquare(5);
-}
 
 void keyboardListener(unsigned char key, int x,int y)
 {
@@ -403,23 +261,6 @@ void keyboardListener(unsigned char key, int x,int y)
 
     switch(key)
     {
-
-    case '1':
-        break;
-    case '2':
-        break;
-
-    case '3':
-        break;
-    case '4':
-        break;
-    case '5':
-
-        break;
-    case '6':
-
-        break;
-
     case 'a':
         normal=ROTATE(normal,Vector(0,0,1),3);
         break;
@@ -440,8 +281,6 @@ void keyboardListener(unsigned char key, int x,int y)
         prog=2*pi*R*5.0/360;
         center=center+l*prog;
         break;
-
-
     default:
         break;
     }
@@ -470,22 +309,6 @@ void specialKeyListener(int key, int x,int y)
         cameraAngle -= 0.03;
 
         break;
-
-    case GLUT_KEY_PAGE_UP:
-
-
-        break;
-    case GLUT_KEY_PAGE_DOWN:
-        break;
-
-    case GLUT_KEY_INSERT:
-        break;
-
-    case GLUT_KEY_HOME:
-        break;
-    case GLUT_KEY_END:
-        break;
-
     default:
         break;
     }
@@ -538,22 +361,10 @@ void display()
     //2. where is the camera looking?
     //3. Which direction is the camera's UP direction?
 
-    //gluLookAt(100,100,100,	0,0,0,	0,0,1);
     gluLookAt(200*cos(cameraAngle), 200*sin(cameraAngle), cameraHeight,		0,0,0,		0,0,1);
-    //Point dir=pos+l;
-
-    //gluLookAt(0,0,100,	0,0,0,	0,1,0);
-
-//    dbg(pos.x);
-//    dbg(pos.y);
-//    dbg(pos.z);
-
-    //gluLookAt(pos.x,pos.y,pos.z,	dir.x,dir.y,dir.z,	u.x,u.y,u.z);
-
 
     //again select MODEL-VIEW
     glMatrixMode(GL_MODELVIEW);
-
 
     /****************************
     / Add your objects from here
@@ -563,10 +374,8 @@ void display()
     drawAxes();
     drawGrid();
 
-    //glColor3f(255,255,255);
-    //drawCone(10,20,50);
     glPushMatrix();
-    drawWheel(20,1);
+    drawWheel(40,50);
     glPopMatrix();
 
 
@@ -585,8 +394,8 @@ void animate()
 void init()
 {
     //codes for initialization
-    drawgrid=0;
-    drawaxes=1;
+    drawgrid=1;
+    drawaxes=0;
     cameraHeight=150.0;
     cameraAngle=1.0;
     angle=0;
@@ -618,7 +427,7 @@ int main(int argc, char **argv)
     glutInitWindowPosition(0, 0);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
 
-    glutCreateWindow("My OpenGL Program");
+    glutCreateWindow("Task3");
 
     init();
 

@@ -10,11 +10,6 @@
 using namespace std;
 
 #define dbg(x) cout<<#x<<" -> "<<x<<endl;
-//double abs(double x)
-//{
-//    if(x<0) x=-x;
-//    return x;
-//}
 
 double cameraHeight;
 double cameraAngle;
@@ -158,63 +153,10 @@ void drawSquare(double a)
     glEnd();
 }
 
-
-void drawCircle(double radius,int segments)
-{
-    int i;
-    struct Point points[100];
-    glColor3f(0.7,0.7,0.7);
-    //generate points
-    for(i=0; i<=segments; i++)
-    {
-        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
-        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
-    }
-    //draw segments using generated points
-    for(i=0; i<segments; i++)
-    {
-        glBegin(GL_LINES);
-        {
-            glVertex3f(points[i].x,points[i].y,0);
-            glVertex3f(points[i+1].x,points[i+1].y,0);
-        }
-        glEnd();
-    }
-}
-
-void drawCone(double radius,double height,int segments)
-{
-    int i;
-    double shade;
-    struct Point points[100];
-    //generate points
-    for(i=0; i<=segments; i++)
-    {
-        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
-        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
-    }
-    //draw triangles using generated points
-    for(i=0; i<segments; i++)
-    {
-        //create shading effect
-        if(i<segments/2)
-            shade=2*(double)i/(double)segments;
-        else
-            shade=2*(1.0-(double)i/(double)segments);
-        glColor3f(shade,shade,shade);
-
-        glBegin(GL_TRIANGLES);
-        {
-            glVertex3f(0,0,height);
-            glVertex3f(points[i].x,points[i].y,0);
-            glVertex3f(points[i+1].x,points[i+1].y,0);
-        }
-        glEnd();
-    }
-}
-
 void drawOneFourthCylinder(double radius,double height,int slices,int stacks)
 {
+    glTranslatef(sq,sq,-sq);
+
     Point point[100][100];
     for(int i=0;i<=stacks;i++)
     {
@@ -243,49 +185,10 @@ void drawOneFourthCylinder(double radius,double height,int slices,int stacks)
 
 }
 
-void drawSphere(double radius,int slices,int stacks)
-{
-    struct Point points[100][100];
-    int i,j;
-    double h,r;
-    //generate points
-    for(i=0; i<=stacks; i++)
-    {
-        h=radius*sin(((double)i/(double)stacks)*(pi/2));
-        r=radius*cos(((double)i/(double)stacks)*(pi/2));
-        for(j=0; j<=slices; j++)
-        {
-            points[i][j].x=r*cos(((double)j/(double)slices)*2*pi);
-            points[i][j].y=r*sin(((double)j/(double)slices)*2*pi);
-            points[i][j].z=h;
-        }
-    }
-    //draw quads using generated points
-    for(i=0; i<stacks; i++)
-    {
-        glColor3f((double)i/(double)stacks,(double)i/(double)stacks,(double)i/(double)stacks);
-        for(j=0; j<slices; j++)
-        {
-            glBegin(GL_QUADS);
-            {
-                //upper hemisphere
-                glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
-                glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
-                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
-                glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
-                //lower hemisphere
-                glVertex3f(points[i][j].x,points[i][j].y,-points[i][j].z);
-                glVertex3f(points[i][j+1].x,points[i][j+1].y,-points[i][j+1].z);
-                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,-points[i+1][j+1].z);
-                glVertex3f(points[i+1][j].x,points[i+1][j].y,-points[i+1][j].z);
-            }
-            glEnd();
-        }
-    }
-}
-
 void drawOneEighthSphere(double radius,int slices,int stacks)
 {
+    glTranslatef(sq,sq,sq);
+
     struct Point points[100][100];
     double h,r;
     //generate points
@@ -316,35 +219,6 @@ void drawOneEighthSphere(double radius,int slices,int stacks)
             glEnd();
         }
     }
-}
-
-
-void drawSS()
-{
-    glColor3f(1,0,0);
-    drawSquare(20);
-
-    glRotatef(angle,0,0,1);
-    glTranslatef(110,0,0);
-    glRotatef(2*angle,0,0,1);
-    glColor3f(0,1,0);
-    drawSquare(15);
-
-    glPushMatrix();
-    {
-        glRotatef(angle,0,0,1);
-        glTranslatef(60,0,0);
-        glRotatef(2*angle,0,0,1);
-        glColor3f(0,0,1);
-        drawSquare(10);
-    }
-    glPopMatrix();
-
-    glRotatef(3*angle,0,0,1);
-    glTranslatef(40,0,0);
-    glRotatef(4*angle,0,0,1);
-    glColor3f(1,1,0);
-    drawSquare(5);
 }
 
 void keyboardListener(unsigned char key, int x,int y)
@@ -429,7 +303,6 @@ void specialKeyListener(int key, int x,int y)
 
     case GLUT_KEY_HOME:
         sq=max(sq-1,0.0);
-        cout<<sq<<endl;
         break;
     case GLUT_KEY_END:
         sq=min(sq+1,L);
@@ -468,24 +341,20 @@ void mouseListener(int button, int state, int x, int y) 	//x, y is the x-y of th
 void draw4cylinders()
 {
     glPushMatrix();
-    glTranslatef(sq,sq,-sq);
     drawOneFourthCylinder(L-sq,sq*2,50,50);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-sq,sq,-sq);
     glRotatef(90,0,0,1);
     drawOneFourthCylinder(L-sq,sq*2,50,50);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-sq,-sq,-sq);
     glRotatef(180,0,0,1);
     drawOneFourthCylinder(L-sq,sq*2,50,50);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(sq,-sq,-sq);
     glRotatef(270,0,0,1);
     drawOneFourthCylinder(L-sq,sq*2,50,50);
     glPopMatrix();
@@ -494,26 +363,36 @@ void draw4cylinders()
 void draw4spheres()
 {
     glPushMatrix();
-    glTranslatef(sq,sq,sq);
     drawOneEighthSphere(L-sq,50,50);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-sq,sq,sq);
     glRotatef(90,0,0,1);
     drawOneEighthSphere(L-sq,50,50);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(sq,-sq,sq);
-    glRotatef(-90,0,0,1);
+    glRotatef(180,0,0,1);
     drawOneEighthSphere(L-sq,50,50);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-sq,-sq,sq);
-    glRotatef(180,0,0,1);
+    glRotatef(270,0,0,1);
     drawOneEighthSphere(L-sq,50,50);
+    glPopMatrix();
+
+}
+
+void draw2squares(double a)
+{
+    glPushMatrix();
+    glTranslatef(0,0,-L);
+    drawSquare(a);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0,0,L);
+    drawSquare(a);
     glPopMatrix();
 
 }
@@ -547,84 +426,36 @@ void display()
     //initialize the matrix
     glLoadIdentity();
 
-    //now give three info
-    //1. where is the camera (viewer)?
-    //2. where is the camera looking?
-    //3. Which direction is the camera's UP direction?
-
-    //gluLookAt(100,100,100,	0,0,0,	0,0,1);
-    //gluLookAt(200*cos(cameraAngle), 200*sin(cameraAngle), cameraHeight,		0,0,0,		0,0,1);
     Point dir=pos+l;
-
-    //gluLookAt(0,0,100,	0,0,0,	0,1,0);
-
-//    dbg(pos.x);
-//    dbg(pos.y);
-//    dbg(pos.z);
 
     gluLookAt(pos.x,pos.y,pos.z,	dir.x,dir.y,dir.z,	u.x,u.y,u.z);
 
-
-    //again select MODEL-VIEW
     glMatrixMode(GL_MODELVIEW);
-
-
-    /****************************
-    / Add your objects from here
-    ****************************/
-    //add objects
 
     drawAxes();
     drawGrid();
 
-    //glColor3f(1,0,0);
-    //drawSquare(10);
-
-    //drawSS();
-
-    //drawCircle(30,24);
-
-    //drawCone(20,50,70);
-    //drawOneFourthCylinder(20,20,50,50);
-    //drawOneEighthSphere(20,50,50);
-    //drawSphere(30,24,20);
-
     glColor3f(255,255,255);
 
+
+    /* 6 sqaures. Draw 2 and rotate accordingly*/
     glPushMatrix();
-    glTranslatef(0,0,-L);
-    drawSquare(sq);
+    draw2squares(sq);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(0,0,L);
-    drawSquare(sq);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0,L,0);
     glRotatef(90,1,0,0);
-    drawSquare(sq);
+    draw2squares(sq);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(0,-L,0);
-    glRotatef(90,1,0,0);
-    drawSquare(sq);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(L,0,0);
     glRotatef(90,0,1,0);
-    drawSquare(sq);
+    draw2squares(sq);
     glPopMatrix();
 
-    glPushMatrix();
-    glTranslatef(-L,0,0);
-    glRotatef(90,0,1,0);
-    drawSquare(sq);
-    glPopMatrix();
+    /* end of squares */
 
+    /* 12 one-fourth cylinders. Draw 4 and rotate accordingly */
 
     glPushMatrix();
     glRotatef(90,1,0,0);
@@ -639,6 +470,11 @@ void display()
     glPushMatrix();
     draw4cylinders();
     glPopMatrix();
+
+    /* end of cylinders */
+
+
+    /* 8 one-eighth spheres. Draw 4 and rotate accordingly */
 
     glPushMatrix();
     draw4spheres();
@@ -649,8 +485,7 @@ void display()
     draw4spheres();
     glPopMatrix();
 
-
-
+    /* end of spheres */
 
     //ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
     glutSwapBuffers();
