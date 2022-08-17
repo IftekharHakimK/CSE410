@@ -7,10 +7,15 @@
 #include <GL/glut.h>
 #include <iostream>
 #define pi (2*acos(0.0))
+#define EPS 1e-6
+#define INF 1e9
 
 using namespace std;
 #define dbg(x) cout<<#x<<" -> "<<x<<endl;
+
+#include "bitmap_image.hpp"
 #include "1705045_Point.h"
+#include "1705045_Ray.h"
 #include "1705045_object.h"
 #include "1705045_Sphere.h"
 #include "1705045_Triangle.h"
@@ -19,26 +24,20 @@ using namespace std;
 #include "1705045_SpotLight.h"
 #include "1705045_Floor.h"
 
+int image_count;
 
-
-double cameraHeight;
-double cameraAngle;
-int drawgrid=1;
-double angle;
 
 const double floorWidth=1000;
 const double tileWidth=20;
+const double fovY=80;
+const double windowHeight=800;
+const double windowWidth=800;
 
 //redundant
 const double L= 30;
 double sq=22;
 
-//Point pos(100,0,0);
-//Vector u(0,0,1);
-//Vector r(0,1,0);
-//Vector l(-1,0,0);
-
-Point pos(0,-200,70);
+Point pos(-20,-200,70);
 Vector u(0,0,1);
 Vector r(1,0,0);
 Vector l(0,1,0);
@@ -62,7 +61,7 @@ void loadData()
     in>>pixel;
     in>>n;
 
-    for(int i=0;i<n;i++)
+    for(int i=0; i<n; i++)
     {
         dbg(i);
         string s;
@@ -152,7 +151,7 @@ void loadData()
     }
 
     in>>pn;
-    for(int i=0;i<pn;i++)
+    for(int i=0; i<pn; i++)
     {
         dbg(i);
         Point pos;
@@ -164,7 +163,7 @@ void loadData()
     }
 
     in>>sn;
-    for(int i=0;i<sn;i++)
+    for(int i=0; i<sn; i++)
     {
         dbg(i);
         Point pos;
@@ -186,6 +185,70 @@ void loadData()
     objects.push_back(floor);
 }
 
+void capture()
+{
+    image_count++;
+    dbg(image_count);
+    bitmap_image image(pixel, pixel);
+
+    for(int i=0; i<pixel; i++) {
+        for(int j=0; j<pixel; j++) {
+            image.set_pixel(i, j, 0, 0, 0);
+        }
+    }
+
+    double planeDistance = windowHeight/2.0/(tan(fovY/2.0*pi/180.0));
+    Point topLeft=pos+l*planeDistance-r*windowHeight/2+u*windowHeight/2;
+    double du=windowWidth/pixel;
+    double dv=windowHeight/pixel;
+
+    topLeft=topLeft+r*du*0.5-u*dv*0.5;
+
+    for(int i=0; i<pixel; i++) {
+        for(int j=0; j<pixel; j++) {
+            Point curPixel = topLeft+r*du*i-u*dv*j;
+//            printPoint(curPixel);
+            double tMin=INF;
+
+            Vector Rd=curPixel-pos;
+            Rd=Rd/LEN(Rd);
+
+            Ray ray(pos,Rd);
+            Object * which=NULL;
+
+            for(Object * obj:objects)
+            {
+                double color[3]={0,0,0};
+                double t=obj->intersect(ray,color,0);
+//                dbg(t);
+
+                if(t>0&&t<tMin)
+                {
+                    tMin=t;
+                    which=obj;
+                }
+            }
+
+            if(which!=NULL)
+            {
+//                dbg(tMin);
+                double color[3]={0,0,0};
+                which->intersect(ray,color,0);
+                image.set_pixel(i,j,round(color[0]*255),round(color[1]*255),round(color[2]*255));
+            }
+
+        }
+    }
+    cout<<"done"<<endl;
+
+    string path="C:/Users/iftek/Desktop/4-1/410/CSE410/Offline3/image";
+    path+=to_string(image_count);
+    path+=".bmp";
+
+    image.save_image(path);
+
+}
+
 void drawAxes()
 {
     glColor3f(1.0, 1.0, 1.0);
@@ -203,121 +266,13 @@ void drawAxes()
     glEnd();
 }
 
-
-void drawGrid()
-{
-    int i;
-    if(drawgrid==1)
-    {
-        glColor3f(0.6, 0.6, 0.6);	//grey
-        glBegin(GL_LINES);
-        {
-            for(i=-8; i<=8; i++)
-            {
-
-                if(i==0)
-                    continue;	//SKIP the MAIN axes
-
-                //lines parallel to Y-axis
-                glVertex3f(i*10, -90, 0);
-                glVertex3f(i*10,  90, 0);
-
-                //lines parallel to X-axis
-                glVertex3f(-90, i*10, 0);
-                glVertex3f( 90, i*10, 0);
-            }
-        }
-        glEnd();
-    }
-}
-
-void drawSquare(double a)
-{
-    //glColor3f(1.0,0.0,0.0);
-    glBegin(GL_QUADS);
-    {
-        glVertex3f( a, a,0);
-        glVertex3f( a,-a,0);
-        glVertex3f(-a,-a,0);
-        glVertex3f(-a, a,0);
-    }
-    glEnd();
-}
-
-void drawOneFourthCylinder(double radius,double height,int slices,int stacks)
-{
-    glTranslatef(sq,sq,-sq);
-
-    Point point[100][100];
-    for(int i=0; i<=stacks; i++)
-    {
-        for(int j=0; j<=slices; j++)
-        {
-            double ang=i*1.0/slices*(pi/2);
-            point[i][j]=Point(radius*cos(ang),radius*sin(ang),height*j/stacks);
-        }
-    }
-    glColor3f(0,1,0);
-    for(int i=0; i<stacks; i++)
-    {
-        for(int j=0; j<slices; j++)
-        {
-            //cout<<"here"<<endl;
-            glBegin(GL_QUADS);
-            {
-                glVertex3f(point[i][j].x,point[i][j].y,point[i][j].z);
-                glVertex3f(point[i][j+1].x,point[i][j+1].y,point[i][j+1].z);
-                glVertex3f(point[i+1][j+1].x,point[i+1][j+1].y,point[i+1][j+1].z);
-                glVertex3f(point[i+1][j].x,point[i+1][j].y,point[i+1][j].z);
-            }
-            glEnd();
-        }
-    }
-
-}
-
-void drawOneEighthSphere(double radius,int slices,int stacks)
-{
-    glTranslatef(sq,sq,sq);
-
-    struct Point points[100][100];
-    double h,r;
-    //generate points
-    for(int i=0; i<=stacks; i++)
-    {
-        h=radius*sin(((double)i/(double)stacks)*(pi/2));
-        r=radius*cos(((double)i/(double)stacks)*(pi/2));
-        for(int j=0; j<=slices; j++)
-        {
-            points[i][j].x=r*cos(((double)j/(double)slices)*pi/2);
-            points[i][j].y=r*sin(((double)j/(double)slices)*pi/2);
-            points[i][j].z=h;
-        }
-    }
-    glColor3f(1,0,0);
-    for(int i=0; i<stacks; i++)
-    {
-        for(int j=0; j<slices; j++)
-        {
-            glBegin(GL_QUADS);
-            {
-                //upper hemisphere
-                glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
-                glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
-                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
-                glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
-            }
-            glEnd();
-        }
-    }
-}
-
-
-
 void keyboardListener(unsigned char key, int x,int y)
 {
     switch(key)
     {
+    case '0':
+        capture();
+        break;
 
     case '1':
         l=ROTATE(l,u,5);
@@ -358,26 +313,22 @@ void specialKeyListener(int key, int x,int y)
     switch(key)
     {
     case GLUT_KEY_DOWN:		//down arrow key
-        cameraHeight -= 3.0;
 
         pos=pos-l*2;
 
         break;
     case GLUT_KEY_UP:		// up arrow key
-        cameraHeight += 3.0;
 
         pos=pos+l*2;
 
         break;
 
     case GLUT_KEY_RIGHT:
-        cameraAngle += 0.03;
 
         pos=pos+r*2;
 
         break;
     case GLUT_KEY_LEFT:
-        cameraAngle -= 0.03;
 
         pos=pos-r*2;
         break;
@@ -426,65 +377,6 @@ void mouseListener(int button, int state, int x, int y) 	//x, y is the x-y of th
     default:
         break;
     }
-}
-
-void draw4cylinders()
-{
-    glPushMatrix();
-    drawOneFourthCylinder(L-sq,sq*2,50,50);
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(90,0,0,1);
-    drawOneFourthCylinder(L-sq,sq*2,50,50);
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(180,0,0,1);
-    drawOneFourthCylinder(L-sq,sq*2,50,50);
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(270,0,0,1);
-    drawOneFourthCylinder(L-sq,sq*2,50,50);
-    glPopMatrix();
-}
-
-void draw4spheres()
-{
-    glPushMatrix();
-    drawOneEighthSphere(L-sq,50,50);
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(90,0,0,1);
-    drawOneEighthSphere(L-sq,50,50);
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(180,0,0,1);
-    drawOneEighthSphere(L-sq,50,50);
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(270,0,0,1);
-    drawOneEighthSphere(L-sq,50,50);
-    glPopMatrix();
-
-}
-
-void draw2squares(double a)
-{
-    glPushMatrix();
-    glTranslatef(0,0,-L);
-    drawSquare(a);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0,0,L);
-    drawSquare(a);
-    glPopMatrix();
-
 }
 
 void display()
@@ -598,18 +490,12 @@ void display()
 
 void animate()
 {
-    angle+=0.05;
-    //codes for any changes in Models, Camera
     glutPostRedisplay();
 }
 
 void init()
 {
     //codes for initialization
-    drawgrid=0;
-    cameraHeight=150.0;
-    cameraAngle=1.0;
-    angle=0;
 
     //clear the screen
     glClearColor(0,0,0,0);
@@ -624,7 +510,7 @@ void init()
     glLoadIdentity();
 
     //give PERSPECTIVE parameters
-    gluPerspective(80,	1,	1,	1000.0);
+    gluPerspective(fovY,	1,	1,	1000.0);
     //field of view in the Y (vertically)
     //aspect ratio that determines the field of view in the X direction (horizontally)
     //near distance
@@ -634,7 +520,7 @@ void init()
 int main(int argc, char **argv)
 {
     glutInit(&argc,argv);
-    glutInitWindowSize(500, 500);
+    glutInitWindowSize(windowWidth,windowHeight);
     glutInitWindowPosition(0, 0);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
 

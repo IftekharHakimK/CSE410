@@ -59,4 +59,58 @@ public:
         }
         glPopMatrix();
     }
+
+    double intersect(Ray ray, double * color, int level)
+    {
+        //origin implicitly moved to center, has no impact on value of parameter t
+        ray.Ro=ray.Ro-center;
+
+//        printPoint(ray.Ro);
+//        printPoint(ray.Rd);
+//        cout<<"circle: "<<radius<<endl;
+
+
+        double a=1;
+        double b=DOT(ray.Ro,ray.Rd)*2;
+        double c=DOT(ray.Ro,ray.Ro)-radius*radius;
+
+        double d=b*b-4*a*c;
+        double t;
+
+        if(d<0)
+        {
+            t=-1;
+        }
+        else if(isSame(d,0))
+        {
+            t=-b/(a*2);
+        }
+        else
+        {
+            d=sqrt(d);
+            double t_minus=(-b-d)/(a*2);
+            double t_plus=(-b+d)/(a*2);
+
+            if(t_minus>0)
+            {
+                t=t_minus;
+            }
+            else if(t_plus>0)
+            {
+                t=t_plus;
+            }
+            else
+            {
+                t=-1;
+            }
+        }
+//        dbg(t);
+        assert(level==0);
+        color[0]=this->color[0];
+        color[1]=this->color[1];
+        color[2]=this->color[2];
+//        cout<<endl;
+        return t;
+
+    }
 };

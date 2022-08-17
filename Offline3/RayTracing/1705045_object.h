@@ -13,6 +13,7 @@ public:
     int shine; // exponent term of specular component
     Object(){}
     virtual void draw()=0;
+    virtual double intersect(Ray ray, double * color, int level)=0;
 //    {
 //        cout<<": ("<<endl;
 //    }

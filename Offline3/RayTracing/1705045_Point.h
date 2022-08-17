@@ -26,6 +26,10 @@ public:
     {
         return Point(x*v,y*v,z*v);
     }
+    Point operator/(double v)
+    {
+        return Point(x/v,y/v,z/v);
+    }
 };
 #define Vector Point
 double DOT(Vector a,Vector b)
@@ -60,4 +64,8 @@ Point ROTATE(Vector a,Vector b,double ang) /* rotate a around b by ang (degree)*
 void printPoint(Point p)
 {
     cout<<p.x<<' '<<p.y<<' '<<p.z<<endl;
+}
+bool isSame(double a,double b)
+{
+    return fabs(a-b)<EPS;
 }
