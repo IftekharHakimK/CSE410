@@ -47,7 +47,7 @@ vector<Object*>objects;
 vector<PointLight>pointLights;
 vector<SpotLight>spotLights;
 
-int level;
+int recursionLevel;
 int pixel;
 int n;
 int pn;
@@ -58,7 +58,7 @@ void loadData()
     cout<<"came here"<<endl;
     ifstream in;
     in.open("C:/Users/iftek/Desktop/4-1/410/CSE410/Offline3/scene.txt");
-    in>>level;
+    in>>recursionLevel;
     in>>pixel;
     in>>n;
 

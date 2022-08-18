@@ -1,3 +1,7 @@
+extern vector<PointLight>pointLights;
+extern vector<SpotLight>spotLights;
+extern vector<Object*>objects;
+extern int recursionLevel;
 
 #include "1705045_Matrix.h"
 
@@ -29,28 +33,28 @@ public:
     }
     double intersect(Ray ray, double * color, int level)
     {
-        double v1[9]={vertex[0].x-ray.Ro.x,vertex[0].x-vertex[2].x,ray.Rd.x,
-                     vertex[0].y-ray.Ro.y,vertex[0].y-vertex[2].y,ray.Rd.y,
-                     vertex[0].z-ray.Ro.z,vertex[0].z-vertex[2].z,ray.Rd.z
-                     };
+        double v1[9]= {vertex[0].x-ray.Ro.x,vertex[0].x-vertex[2].x,ray.Rd.x,
+                       vertex[0].y-ray.Ro.y,vertex[0].y-vertex[2].y,ray.Rd.y,
+                       vertex[0].z-ray.Ro.z,vertex[0].z-vertex[2].z,ray.Rd.z
+                      };
         Matrix33 m_beta=Matrix33(v1);
 
-        double v2[9]={vertex[0].x-vertex[1].x,vertex[0].x-ray.Ro.x,ray.Rd.x,
-                      vertex[0].y-vertex[1].y,vertex[0].y-ray.Ro.y,ray.Rd.y,
-                      vertex[0].z-vertex[1].z,vertex[0].z-ray.Ro.z,ray.Rd.z
-                     };
+        double v2[9]= {vertex[0].x-vertex[1].x,vertex[0].x-ray.Ro.x,ray.Rd.x,
+                       vertex[0].y-vertex[1].y,vertex[0].y-ray.Ro.y,ray.Rd.y,
+                       vertex[0].z-vertex[1].z,vertex[0].z-ray.Ro.z,ray.Rd.z
+                      };
         Matrix33 m_gamma=Matrix33(v2);
 
-        double v3[9]={vertex[0].x-vertex[1].x,vertex[0].x-vertex[2].x,vertex[0].x-ray.Ro.x,
-                      vertex[0].y-vertex[1].y,vertex[0].y-vertex[2].y,vertex[0].y-ray.Ro.y,
-                      vertex[0].z-vertex[1].z,vertex[0].z-vertex[2].z,vertex[0].z-ray.Ro.z
-                     };
+        double v3[9]= {vertex[0].x-vertex[1].x,vertex[0].x-vertex[2].x,vertex[0].x-ray.Ro.x,
+                       vertex[0].y-vertex[1].y,vertex[0].y-vertex[2].y,vertex[0].y-ray.Ro.y,
+                       vertex[0].z-vertex[1].z,vertex[0].z-vertex[2].z,vertex[0].z-ray.Ro.z
+                      };
         Matrix33 m_t=Matrix33(v3);
 
-        double v4[9]={vertex[0].x-vertex[1].x,vertex[0].x-vertex[2].x,ray.Rd.x,
-                     vertex[0].y-vertex[1].y,vertex[0].y-vertex[2].y,ray.Rd.y,
-                     vertex[0].z-vertex[1].z,vertex[0].z-vertex[2].z,ray.Rd.z
-                     };
+        double v4[9]= {vertex[0].x-vertex[1].x,vertex[0].x-vertex[2].x,ray.Rd.x,
+                       vertex[0].y-vertex[1].y,vertex[0].y-vertex[2].y,ray.Rd.y,
+                       vertex[0].z-vertex[1].z,vertex[0].z-vertex[2].z,ray.Rd.z
+                      };
         Matrix33 m_A=Matrix33(v4);
 
         double A=m_A.determinant();
@@ -64,12 +68,12 @@ public:
 
         if(!(beta+gamma<1&&beta>0&&gamma>0&&t>0))
             t=-1;
-        if(level==0||t==-1)
+        if(level==0||t<0)
             return t;
 
         Point intersectionPoint=ray.Ro+ray.Rd*t;
 
-        double intersectionPointColor[3]={0,0,0};
+        double intersectionPointColor[3]= {0,0,0};
 
         intersectionPointColor[0]=this->color[0];
         intersectionPointColor[1]=this->color[1];
@@ -95,7 +99,7 @@ public:
             double t_block=INF;
             for(auto u:objects)
             {
-                double dummy_color[3]={0,0,0};
+                double dummy_color[3]= {0,0,0};
                 double t_here=u->intersect(L,dummy_color,0);
                 if(t_here>0&&t_here<t_block)
                 {
@@ -133,7 +137,6 @@ public:
             color[2]+=pl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
 //            dbg(lambert);
 //            dbg(phong);
-//            cout<<"here"<<endl;
         }
 
         for(SpotLight sl:spotLights)
@@ -146,12 +149,12 @@ public:
             {
                 continue;
             }
-//            cout<<"blocked"<<endl;
+
 
             double t_block=INF;
             for(auto u:objects)
             {
-                double dummy_color[3]={0,0,0};
+                double dummy_color[3]= {0,0,0};
                 double t_here=u->intersect(L,dummy_color,0);
                 if(t_here>0&&t_here<t_block)
                 {
@@ -167,7 +170,6 @@ public:
                     continue;
                 }
             }
-
 
             Vector uL=L.Rd*-1;
 
@@ -191,9 +193,44 @@ public:
 //            dbg(phong);
 //            cout<<"here"<<endl;
         }
+        if(level==recursionLevel)
+            return t;
+
+        Vector uL=ray.Rd*-1;
+        Vector R=normal*DOT(uL,normal)*2-uL;
+        Ray reflectRay(intersectionPoint+R*EPS*3,R);
+        Object * which=NULL;
+        double tMin=INF;
+
+        for(Object * obj:objects)
+        {
+            double dummy[3]= {0,0,0};
+            double t_r=obj->intersect(reflectRay,dummy,0);
+//                dbg(t);
+
+            if(t_r>0&&t_r<tMin)
+            {
+                tMin=t_r;
+                which=obj;
+            }
+        }
+
+        if(which!=NULL)
+        {
+            double reflectedColor[3]= {0,0,0};
+            which->intersect(reflectRay,reflectedColor,level+1);
+
+            color[0]+=reflectedColor[0]*reflection;
+            color[1]+=reflectedColor[1]*reflection;
+            color[2]+=reflectedColor[2]*reflection;
+
+        }
+
+        color[0]=min(1.0,max(0.0,color[0]));
+        color[1]=min(1.0,max(0.0,color[1]));
+        color[2]=min(1.0,max(0.0,color[2]));
 
         return t;
-
     }
 };
 

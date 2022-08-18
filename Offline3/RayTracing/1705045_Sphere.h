@@ -1,6 +1,7 @@
 extern vector<PointLight>pointLights;
 extern vector<SpotLight>spotLights;
 extern vector<Object*>objects;
+extern int recursionLevel;
 
 class Sphere: public Object
 {
@@ -108,12 +109,12 @@ public:
                 t=-1;
             }
         }
-        if(level==0||t==-1)
+        if(level==0||t<0)
             return t;
         ray.Ro=ray.Ro+center;
         Point intersectionPoint=ray.Ro+ray.Rd*t;
 
-        double intersectionPointColor[3]={0,0,0};
+        double intersectionPointColor[3]= {0,0,0};
 
         intersectionPointColor[0]=this->color[0];
         intersectionPointColor[1]=this->color[1];
@@ -126,6 +127,11 @@ public:
         Vector normal=intersectionPoint-center;
         normal=normal/LEN(normal);
 
+        if(DOT(normal,ray.Rd*-1)<0)
+        {
+            normal=normal*-1;
+        }
+
         for(PointLight pl:pointLights)
         {
             Ray L(pl.pos,intersectionPoint-pl.pos);
@@ -133,7 +139,7 @@ public:
             double t_block=INF;
             for(auto u:objects)
             {
-                double dummy_color[3]={0,0,0};
+                double dummy_color[3]= {0,0,0};
                 double t_here=u->intersect(L,dummy_color,0);
                 if(t_here>0&&t_here<t_block)
                 {
@@ -171,7 +177,6 @@ public:
             color[2]+=pl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
 //            dbg(lambert);
 //            dbg(phong);
-//            cout<<"here"<<endl;
         }
 
         for(SpotLight sl:spotLights)
@@ -184,12 +189,12 @@ public:
             {
                 continue;
             }
-            cout<<"blocked"<<endl;
+//            cout<<"blocked"<<endl;
 
             double t_block=INF;
             for(auto u:objects)
             {
-                double dummy_color[3]={0,0,0};
+                double dummy_color[3]= {0,0,0};
                 double t_here=u->intersect(L,dummy_color,0);
                 if(t_here>0&&t_here<t_block)
                 {
@@ -225,10 +230,47 @@ public:
             color[0]+=sl.color[0]*specular*pow(phong,shine)*intersectionPointColor[0];
             color[1]+=sl.color[1]*specular*pow(phong,shine)*intersectionPointColor[1];
             color[2]+=sl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
-            dbg(lambert);
-            dbg(phong);
+//            dbg(lambert);
+//            dbg(phong);
 //            cout<<"here"<<endl;
         }
+
+        if(level==recursionLevel)
+            return t;
+
+        Vector uL=ray.Rd*-1;
+        Vector R=normal*DOT(uL,normal)*2-uL;
+        Ray reflectRay(intersectionPoint+R*EPS*3,R);
+        Object * which=NULL;
+        double tMin=INF;
+
+        for(Object * obj:objects)
+        {
+            double dummy[3]= {0,0,0};
+            double t_r=obj->intersect(reflectRay,dummy,0);
+//                dbg(t);
+
+            if(t_r>0&&t_r<tMin)
+            {
+                tMin=t_r;
+                which=obj;
+            }
+        }
+
+        if(which!=NULL)
+        {
+            double reflectedColor[3]= {0,0,0};
+            which->intersect(reflectRay,reflectedColor,level+1);
+
+            color[0]+=reflectedColor[0]*reflection;
+            color[1]+=reflectedColor[1]*reflection;
+            color[2]+=reflectedColor[2]*reflection;
+
+        }
+
+        color[0]=min(1.0,max(0.0,color[0]));
+        color[1]=min(1.0,max(0.0,color[1]));
+        color[2]=min(1.0,max(0.0,color[2]));
 
         return t;
 

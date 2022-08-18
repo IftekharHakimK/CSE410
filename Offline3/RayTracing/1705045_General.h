@@ -1,3 +1,8 @@
+extern vector<PointLight>pointLights;
+extern vector<SpotLight>spotLights;
+extern vector<Object*>objects;
+extern int recursionLevel;
+
 class General: public Object
 {
 public:
@@ -81,22 +86,191 @@ public:
         color[1]=this->color[1];
         color[2]=this->color[2];
 
+        double t=-1;
+
         if(t0>0)
         {
-            return t0;
+            t=t0;
         }
         else
         {
             if(t1>0)
             {
-                return t1;
+                t=t1;
             }
-            else
+        }
+        if(level==0||t<0)
+        {
+            return t;
+        }
+
+        Point intersectionPoint=ray.Ro+ray.Rd*t;
+
+        double intersectionPointColor[3]= {0,0,0};
+
+        intersectionPointColor[0]=this->color[0];
+        intersectionPointColor[1]=this->color[1];
+        intersectionPointColor[2]=this->color[2];
+
+        color[0]=intersectionPointColor[0]*ambient;
+        color[1]=intersectionPointColor[1]*ambient;
+        color[2]=intersectionPointColor[2]*ambient;
+
+        Vector normal;
+
+        normal.x=2*A*intersectionPoint.x+D*intersectionPoint.y+E*intersectionPoint.z+G;
+        normal.y=2*B*intersectionPoint.y+D*intersectionPoint.x+F*intersectionPoint.z+H;
+        normal.z=2*C*intersectionPoint.z+E*intersectionPoint.x+F*intersectionPoint.y+I;
+
+
+        normal=normal/LEN(normal);
+
+
+        if(DOT(normal,ray.Rd*-1)<0)
+        {
+            normal=normal*-1;
+        }
+
+        for(PointLight pl:pointLights)
+        {
+            Ray L(pl.pos,intersectionPoint-pl.pos);
+
+            double t_block=INF;
+            for(auto u:objects)
             {
-                return -1;
+                double dummy_color[3]= {0,0,0};
+                double t_here=u->intersect(L,dummy_color,0);
+                if(t_here>0&&t_here<t_block)
+                {
+                    t_block=t_here;
+                }
+            }
+
+            if(t_block>0)
+            {
+                Point blocked_at=L.Ro+L.Rd*t_block;
+                if(!isSamePoint(blocked_at,intersectionPoint))
+                {
+                    continue;
+                }
+            }
+
+
+            Vector uL=L.Rd*-1;
+
+            double lambert=DOT(uL,normal);
+            Vector R=normal*DOT(uL,normal)*2-uL;
+            R=R/LEN(R);
+
+            double phong=DOT(ray.Rd*-1,R);
+
+            lambert=max(0.0,lambert);
+            phong=max(0.0,phong);
+
+            color[0]+=pl.color[0]*diffuse*lambert*intersectionPointColor[0];
+            color[1]+=pl.color[1]*diffuse*lambert*intersectionPointColor[1];
+            color[2]+=pl.color[2]*diffuse*lambert*intersectionPointColor[2];
+
+            color[0]+=pl.color[0]*specular*pow(phong,shine)*intersectionPointColor[0];
+            color[1]+=pl.color[1]*specular*pow(phong,shine)*intersectionPointColor[1];
+            color[2]+=pl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
+//            dbg(lambert);
+//            dbg(phong);
+        }
+
+        for(SpotLight sl:spotLights)
+        {
+            Ray L(sl.pos,intersectionPoint-sl.pos);
+
+            //check cutoff
+            double angle=getAngleInDegree(sl.light_direction,L.Rd);
+            if(angle>sl.cutoff_angle)
+            {
+                continue;
+            }
+//            cout<<"blocked"<<endl;
+
+            double t_block=INF;
+            for(auto u:objects)
+            {
+                double dummy_color[3]= {0,0,0};
+                double t_here=u->intersect(L,dummy_color,0);
+                if(t_here>0&&t_here<t_block)
+                {
+                    t_block=t_here;
+                }
+            }
+
+            if(t_block>0)
+            {
+                Point blocked_at=L.Ro+L.Rd*t_block;
+                if(!isSamePoint(blocked_at,intersectionPoint))
+                {
+                    continue;
+                }
+            }
+
+
+            Vector uL=L.Rd*-1;
+
+            double lambert=DOT(uL,normal);
+            Vector R=normal*DOT(uL,normal)*2-uL;
+            R=R/LEN(R);
+
+            double phong=DOT(ray.Rd*-1,R);
+
+            lambert=max(0.0,lambert);
+            phong=max(0.0,phong);
+
+            color[0]+=sl.color[0]*diffuse*lambert*intersectionPointColor[0];
+            color[1]+=sl.color[1]*diffuse*lambert*intersectionPointColor[1];
+            color[2]+=sl.color[2]*diffuse*lambert*intersectionPointColor[2];
+
+            color[0]+=sl.color[0]*specular*pow(phong,shine)*intersectionPointColor[0];
+            color[1]+=sl.color[1]*specular*pow(phong,shine)*intersectionPointColor[1];
+            color[2]+=sl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
+//            dbg(lambert);
+//            dbg(phong);
+//            cout<<"here"<<endl;
+        }
+
+        if(level==recursionLevel)
+            return t;
+
+        Vector uL=ray.Rd*-1;
+        Vector R=normal*DOT(uL,normal)*2-uL;
+        Ray reflectRay(intersectionPoint+R*EPS*3,R);
+        Object * which=NULL;
+        double tMin=INF;
+
+        for(Object * obj:objects)
+        {
+            double dummy[3]= {0,0,0};
+            double t_r=obj->intersect(reflectRay,dummy,0);
+//                dbg(t);
+
+            if(t_r>0&&t_r<tMin)
+            {
+                tMin=t_r;
+                which=obj;
             }
         }
 
-        return -1;
+        if(which!=NULL)
+        {
+            double reflectedColor[3]= {0,0,0};
+            which->intersect(reflectRay,reflectedColor,level+1);
+
+            color[0]+=reflectedColor[0]*reflection;
+            color[1]+=reflectedColor[1]*reflection;
+            color[2]+=reflectedColor[2]*reflection;
+
+        }
+
+        color[0]=min(1.0,max(0.0,color[0]));
+        color[1]=min(1.0,max(0.0,color[1]));
+        color[2]=min(1.0,max(0.0,color[2]));
+
+        return t;
     }
 };
