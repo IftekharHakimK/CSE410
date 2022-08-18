@@ -199,7 +199,7 @@ void capture()
     }
 
     double planeDistance = windowHeight/2.0/(tan(fovY/2.0*pi/180.0));
-    Point topLeft=pos+l*planeDistance-r*windowHeight/2+u*windowHeight/2;
+    Point topLeft=pos+l*planeDistance-r*windowWidth/2+u*windowHeight/2;
     double du=windowWidth/pixel;
     double dv=windowHeight/pixel;
 
