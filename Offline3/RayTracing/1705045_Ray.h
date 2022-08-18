@@ -8,5 +8,6 @@ public:
     {
         Ro=_Ro;
         Rd=_Rd;
+        Rd=Rd/LEN(Rd);
     }
 };

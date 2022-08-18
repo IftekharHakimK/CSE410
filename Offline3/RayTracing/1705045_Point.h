@@ -69,3 +69,16 @@ bool isSame(double a,double b)
 {
     return fabs(a-b)<EPS;
 }
+
+bool isSamePoint(Point A,Point B)
+{
+    return isSame(A.x,B.x)&&isSame(A.y,B.y)&&isSame(A.z,B.z);
+}
+double getAngleInDegree(Vector A,Vector B)
+{
+    A=A/LEN(A);
+    B=B/LEN(B);
+
+    return acos(DOT(A,B))*180.0/pi;
+
+}

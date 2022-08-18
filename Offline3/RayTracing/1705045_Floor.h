@@ -8,6 +8,10 @@ public:
     {
         floorWidth=_floorWidth;
         tileWidth=_tileWidth;
+        ambient=0.4;
+        diffuse=0.2;
+        specular=0.2;
+        reflection=0.2;
     }
     void draw()
     {
@@ -53,10 +57,17 @@ public:
     }
     double intersect(Ray ray, double * color, int level)
     {
-        double down=DOT(Vector(0,0,1),ray.Rd);
+
+        Vector normal=Vector(0,0,1);
+//        if(DOT(normal,ray.Rd*-1)<0)
+//        {
+//            normal=normal*-1;
+//        }
+
+        double down=DOT(normal,ray.Rd);
         if(isSame(down,0))
             return -1;
-        double up=-DOT(Vector(0,0,1),ray.Ro);
+        double up=-DOT(normal,ray.Ro);
 
         double t=up/down;
 
@@ -65,19 +76,136 @@ public:
         if(!(intersectionPoint.x>=-floorWidth/2&&intersectionPoint.x<=floorWidth/2&&intersectionPoint.y>=-floorWidth/2&&intersectionPoint.y<=floorWidth/2))
             return -1;
 
+        if(t<0||level==0)
+            return t;
+        cout<<"here"<<endl;
+
         int i=floor((intersectionPoint.x+floorWidth/2)/tileWidth);
         int j=floor((intersectionPoint.y+floorWidth/2)/tileWidth);
 
-        assert(level==0);
+        double intersectionPointColor[3]={0,0,0};
 
         if((i+j)%2==0)
         {
-            color[0]=color[1]=color[2]=1;
+            intersectionPointColor[0]=1;
+            intersectionPointColor[1]=1;
+            intersectionPointColor[2]=1;
         }
         else
         {
-            color[0]=color[1]=color[2]=0;
+            intersectionPointColor[0]=0;
+            intersectionPointColor[1]=0;
+            intersectionPointColor[2]=0;
         }
+
+        color[0]=intersectionPointColor[0]*ambient;
+        color[1]=intersectionPointColor[1]*ambient;
+        color[2]=intersectionPointColor[2]*ambient;
+
+        for(PointLight pl:pointLights)
+        {
+            Ray L(pl.pos,intersectionPoint-pl.pos);
+
+            double t_block=INF;
+            for(auto u:objects)
+            {
+                double dummy_color[3]={0,0,0};
+                double t_here=u->intersect(L,dummy_color,0);
+                if(t_here>0&&t_here<t_block)
+                {
+                    t_block=t_here;
+                }
+            }
+
+            if(t_block>0)
+            {
+                Point blocked_at=L.Ro+L.Rd*t_block;
+                if(!isSamePoint(blocked_at,intersectionPoint))
+                {
+                    continue;
+                }
+            }
+
+
+            Vector uL=L.Rd*-1;
+
+            double lambert=DOT(uL,normal);
+            Vector R=normal*DOT(uL,normal)*2-uL;
+            R=R/LEN(R);
+
+            double phong=DOT(ray.Rd*-1,R);
+
+            lambert=max(0.0,lambert);
+            phong=max(0.0,phong);
+
+            color[0]+=pl.color[0]*diffuse*lambert*intersectionPointColor[0];
+            color[1]+=pl.color[1]*diffuse*lambert*intersectionPointColor[1];
+            color[2]+=pl.color[2]*diffuse*lambert*intersectionPointColor[2];
+
+            color[0]+=pl.color[0]*specular*pow(phong,shine)*intersectionPointColor[0];
+            color[1]+=pl.color[1]*specular*pow(phong,shine)*intersectionPointColor[1];
+            color[2]+=pl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
+//            dbg(lambert);
+//            dbg(phong);
+//            cout<<"here"<<endl;
+        }
+//
+//        for(SpotLight sl:spotLights)
+//        {
+//            Ray L(sl.pos,intersectionPoint-sl.pos);
+//
+//            //check cutoff
+//            double angle=getAngleInDegree(sl.light_direction,L.Rd);
+//            if(angle>sl.cutoff_angle)
+//            {
+//                continue;
+//            }
+////            cout<<"blocked"<<endl;
+//
+//            double t_block=INF;
+//            for(auto u:objects)
+//            {
+//                double dummy_color[3]={0,0,0};
+//                double t_here=u->intersect(L,dummy_color,0);
+//                if(t_here>0&&t_here<t_block)
+//                {
+//                    t_block=t_here;
+//                }
+//            }
+//
+//            if(t_block>0)
+//            {
+//                Point blocked_at=L.Ro+L.Rd*t_block;
+//                if(!isSamePoint(blocked_at,intersectionPoint))
+//                {
+//                    continue;
+//                }
+//            }
+//
+//
+//            Vector uL=L.Rd*-1;
+//
+//            double lambert=DOT(uL,normal);
+//            Vector R=normal*DOT(uL,normal)*2-uL;
+//            R=R/LEN(R);
+//
+//            double phong=DOT(ray.Rd*-1,R);
+//
+//            lambert=max(0.0,lambert);
+//            phong=max(0.0,phong);
+//
+//            color[0]+=sl.color[0]*diffuse*lambert*intersectionPointColor[0];
+//            color[1]+=sl.color[1]*diffuse*lambert*intersectionPointColor[1];
+//            color[2]+=sl.color[2]*diffuse*lambert*intersectionPointColor[2];
+//
+//            color[0]+=sl.color[0]*specular*pow(phong,shine)*intersectionPointColor[0];
+//            color[1]+=sl.color[1]*specular*pow(phong,shine)*intersectionPointColor[1];
+//            color[2]+=sl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
+////            dbg(lambert);
+////            dbg(phong);
+////            cout<<"here"<<endl;
+//        }
+
         return t;
     }
 };

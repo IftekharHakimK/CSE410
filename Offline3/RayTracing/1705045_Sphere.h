@@ -1,3 +1,7 @@
+extern vector<PointLight>pointLights;
+extern vector<SpotLight>spotLights;
+extern vector<Object*>objects;
+
 class Sphere: public Object
 {
 public:
@@ -104,13 +108,131 @@ public:
                 t=-1;
             }
         }
-//        dbg(t);
-        assert(level==0);
-        color[0]=this->color[0];
-        color[1]=this->color[1];
-        color[2]=this->color[2];
-//        cout<<endl;
+        if(level==0||t==-1)
+            return t;
+        ray.Ro=ray.Ro+center;
+        Point intersectionPoint=ray.Ro+ray.Rd*t;
+
+        double intersectionPointColor[3]={0,0,0};
+
+        intersectionPointColor[0]=this->color[0];
+        intersectionPointColor[1]=this->color[1];
+        intersectionPointColor[2]=this->color[2];
+
+        color[0]=intersectionPointColor[0]*ambient;
+        color[1]=intersectionPointColor[1]*ambient;
+        color[2]=intersectionPointColor[2]*ambient;
+
+        Vector normal=intersectionPoint-center;
+        normal=normal/LEN(normal);
+
+        for(PointLight pl:pointLights)
+        {
+            Ray L(pl.pos,intersectionPoint-pl.pos);
+
+            double t_block=INF;
+            for(auto u:objects)
+            {
+                double dummy_color[3]={0,0,0};
+                double t_here=u->intersect(L,dummy_color,0);
+                if(t_here>0&&t_here<t_block)
+                {
+                    t_block=t_here;
+                }
+            }
+
+            if(t_block>0)
+            {
+                Point blocked_at=L.Ro+L.Rd*t_block;
+                if(!isSamePoint(blocked_at,intersectionPoint))
+                {
+                    continue;
+                }
+            }
+
+
+            Vector uL=L.Rd*-1;
+
+            double lambert=DOT(uL,normal);
+            Vector R=normal*DOT(uL,normal)*2-uL;
+            R=R/LEN(R);
+
+            double phong=DOT(ray.Rd*-1,R);
+
+            lambert=max(0.0,lambert);
+            phong=max(0.0,phong);
+
+            color[0]+=pl.color[0]*diffuse*lambert*intersectionPointColor[0];
+            color[1]+=pl.color[1]*diffuse*lambert*intersectionPointColor[1];
+            color[2]+=pl.color[2]*diffuse*lambert*intersectionPointColor[2];
+
+            color[0]+=pl.color[0]*specular*pow(phong,shine)*intersectionPointColor[0];
+            color[1]+=pl.color[1]*specular*pow(phong,shine)*intersectionPointColor[1];
+            color[2]+=pl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
+//            dbg(lambert);
+//            dbg(phong);
+//            cout<<"here"<<endl;
+        }
+
+        for(SpotLight sl:spotLights)
+        {
+            Ray L(sl.pos,intersectionPoint-sl.pos);
+
+            //check cutoff
+            double angle=getAngleInDegree(sl.light_direction,L.Rd);
+            if(angle>sl.cutoff_angle)
+            {
+                continue;
+            }
+            cout<<"blocked"<<endl;
+
+            double t_block=INF;
+            for(auto u:objects)
+            {
+                double dummy_color[3]={0,0,0};
+                double t_here=u->intersect(L,dummy_color,0);
+                if(t_here>0&&t_here<t_block)
+                {
+                    t_block=t_here;
+                }
+            }
+
+            if(t_block>0)
+            {
+                Point blocked_at=L.Ro+L.Rd*t_block;
+                if(!isSamePoint(blocked_at,intersectionPoint))
+                {
+                    continue;
+                }
+            }
+
+
+            Vector uL=L.Rd*-1;
+
+            double lambert=DOT(uL,normal);
+            Vector R=normal*DOT(uL,normal)*2-uL;
+            R=R/LEN(R);
+
+            double phong=DOT(ray.Rd*-1,R);
+
+            lambert=max(0.0,lambert);
+            phong=max(0.0,phong);
+
+            color[0]+=sl.color[0]*diffuse*lambert*intersectionPointColor[0];
+            color[1]+=sl.color[1]*diffuse*lambert*intersectionPointColor[1];
+            color[2]+=sl.color[2]*diffuse*lambert*intersectionPointColor[2];
+
+            color[0]+=sl.color[0]*specular*pow(phong,shine)*intersectionPointColor[0];
+            color[1]+=sl.color[1]*specular*pow(phong,shine)*intersectionPointColor[1];
+            color[2]+=sl.color[2]*specular*pow(phong,shine)*intersectionPointColor[2];
+            dbg(lambert);
+            dbg(phong);
+//            cout<<"here"<<endl;
+        }
+
         return t;
+
+
 
     }
 };

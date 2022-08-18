@@ -16,12 +16,13 @@ using namespace std;
 #include "bitmap_image.hpp"
 #include "1705045_Point.h"
 #include "1705045_Ray.h"
+#include "1705045_PointLight.h"
+#include "1705045_SpotLight.h"
 #include "1705045_object.h"
 #include "1705045_Sphere.h"
 #include "1705045_Triangle.h"
 #include "1705045_General.h"
-#include "1705045_PointLight.h"
-#include "1705045_SpotLight.h"
+
 #include "1705045_Floor.h"
 
 int image_count;
@@ -30,8 +31,8 @@ int image_count;
 const double floorWidth=1000;
 const double tileWidth=20;
 const double fovY=80;
-const double windowHeight=800;
-const double windowWidth=800;
+const double windowHeight=700;
+const double windowWidth=700;
 
 //redundant
 const double L= 30;
@@ -233,7 +234,7 @@ void capture()
             {
 //                dbg(tMin);
                 double color[3]={0,0,0};
-                which->intersect(ray,color,0);
+                which->intersect(ray,color,1);
                 image.set_pixel(i,j,round(color[0]*255),round(color[1]*255),round(color[2]*255));
             }
 
@@ -474,6 +475,10 @@ void display()
 
     for(auto u:objects)
         u->draw();
+    for(auto u:pointLights)
+        u.draw();
+    for(auto u:spotLights)
+        u.draw();
 //    for(a object:objects)
 //    {
 //        object.draw();
